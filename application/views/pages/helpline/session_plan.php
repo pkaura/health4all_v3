@@ -1,3 +1,4 @@
+<script type="text/javascript" src="<?php echo base_url();?>assets/js/bootbox.min.js"></script>
 <script type="text/javascript" src="<?php echo base_url();?>assets/js/jquery.min.js"></script>
 <script type="text/javascript" src="<?php echo base_url();?>assets/js/jquery.ptTimeSelect.js"></script>
 <script type="text/javascript" src="<?php echo base_url();?>assets/js/jquery.tablesorter.min.js"></script>
@@ -9,12 +10,11 @@
 <link rel="stylesheet" href="<?php echo base_url();?>assets/css/jquery.ptTimeSelect.css">
 <link rel="stylesheet" href="<?php echo base_url();?>assets/css/metallic.css" >
 <link rel="stylesheet" href="<?php echo base_url();?>assets/css/theme.default.css" >
+<!-- Add this for receiver id drop drown list in the add Modal--!>
+<link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/css/selectize.css">
+<script type="text/javascript" src="<?php echo base_url();?>assets/js/jquery.selectize.js"></script>
 <script type="text/javascript">
-$(document).ready(function(){$("#from_date").datepicker({
-		dateFormat:"dd-M-yy",changeYear:1,changeMonth:1,onSelect:function(sdt)
-		{$("#to_date").datepicker({dateFormat:"dd-M-yy",changeYear:1,changeMonth:1})
-		$("#to_date").datepicker("option","minDate",sdt)}})
-		var options = {
+$(document).ready(function(){		var options = {
 			widthFixed : true,
 			showProcessing: true,
 			headerTemplate : '{content} {icon}', // Add icon for jui theme; new in v2.7!
@@ -65,7 +65,61 @@ $(document).ready(function(){$("#from_date").datepicker({
 		  $('.print').click(function(){
 			$('#table-sort').trigger('printTable');
 		  });
+	initUserSelectize();
 });
+
+function transformUser(res){
+	if(res){
+		res.map(function(d){
+			d.custom_data = d.full_name + ' ' + ' - ' + d.phone + ' - ' + d.email;
+		    return d;
+		});
+	}
+	return res;
+}
+
+function initUserSelectize(){
+	window['userList'] = [];
+	var selectize = $('#receiver_id').selectize({
+	    valueField: 'receiver_id',
+	    labelField: 'custom_data',
+	    searchField: 'custom_data',
+	    options: window['userList'],
+	    create: false,
+	    render: {
+	        option: function(item, escape) {
+			console.log("In render");
+	        	console.log(item.custom_data);
+			return '<div>' +
+	                '<span class="title">' +
+	                    '<span class="prescription_drug_selectize_span">' + escape(item.custom_data) + '</span>' +
+	                '</span>' 
+	            '</div>';
+	        }
+	    },
+	    load: function(query, callback) {
+	        if (!query.length) return callback();
+	        $.ajax({
+	            url: '<?php echo base_url();?>helpline/search_helpline_receiver',
+	            type: 'POST',
+				dataType : 'JSON',
+				data : { query: query },
+	            error: function(res) {
+			console.log("error");
+	                console.log(res);
+			callback();
+	            },
+	            success: function(res) {
+	            	res = transformUser(res);
+			console.log("after transorm user");
+			console.log(res);
+	                callback(res.slice(0, 10));
+	            }
+	        });
+		},
+
+	});
+}
 
 </script>
 <script type="text/javascript">
@@ -79,7 +133,7 @@ $(document).ready(function(){$("#from_date").datepicker({
 function doPost(page_no){
 	var page_no_hidden = document.getElementById("page_no");
   	page_no_hidden.value=page_no;
-        $('#appointment').submit();
+        $('#session_plan').submit();
    }
 function onchange_page_dropdown(dropdownobj){
    doPost(dropdownobj.value);    
@@ -110,6 +164,13 @@ function onchange_page_dropdown(dropdownobj){
     color: #2a6496;
     outline:0px;	
 }
+    .selectize-control.repositories .selectize-dropdown > div {
+		border-bottom: 1px solid rgba(0,0,0,0.05);
+	}
+.selectize-control {
+	display: inline-grid;
+}
+
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -145,79 +206,67 @@ input[type=number] {
 </style>
 
 	<?php 
-	$from_date=0;$to_date=0;
-	if($this->input->post('from_date')) $from_date=date("Y-m-d",strtotime($this->input->post('from_date'))); else $from_date = date("Y-m-d");
-	if($this->input->post('to_date')) $to_date=date("Y-m-d",strtotime($this->input->post('to_date'))); else $to_date = date("Y-m-d");
-	$from_time=0;$to_time=0;
-	if($this->input->post('from_time')) $from_time=date("H:i",strtotime($this->input->post('from_time'))); else $from_time = date("H:i",strtotime("00:00"));
-	if($this->input->post('to_time')) $to_time=date("H:i",strtotime($this->input->post('to_time'))); else $to_time = date("H:i",strtotime("23:59"));
 	$page_no = 1;	
 	
 	?>
 <div class="row">
-		<h4>Registrations / Appointments</h4>	
-		<?php echo form_open("reports/appointment",array('role'=>'form','class'=>'form-custom','id'=>'appointment')); ?> 
+		<h4>Helpline Session</h4>	
+		<?php echo form_open("helpline/session_plan",array('role'=>'form','class'=>'form-custom','id'=>'helplineForm')); ?> 
 			 <input type="hidden" name="page_no" id="page_no" value='<?php echo "$page_no"; ?>'>
-                        Search by : <select name="dateby" id="dateby" class="form-control">   
-                        <option value="Registration" <?php echo ($this->input->post('dateby') == 'Registration') ? 'selected' : ''; ?> >Registration</option> 
-                        <option value="Appointment" <?php echo ($this->input->post('dateby') == 'Appointment') ? 'selected' : ''; ?> >Appointment</option>          
-                        </select>
-                      
-			From Date : <input class="form-control" style = "background-color:#EEEEEE" type="text" value="<?php echo date("d-M-Y",strtotime($from_date)); ?>" name="from_date" id="from_date" size="15" />
-			To Date : <input class="form-control" type="text" style = "background-color:#EEEEEE" value="<?php echo date("d-M-Y",strtotime($to_date)); ?>" name="to_date" id="to_date" size="15" />
-	                From Time:<input  class="form-control" style = "background-color:#EEEEEE" type="text" value="<?php echo date("h:i A",strtotime($from_time)); ?>" name="from_time" id="from_time" size="7px"/>
-                   	To Time:<input class="form-control" style = "background-color:#EEEEEE" type="text" value="<?php echo date("h:i A",strtotime($to_time)); ?>" name="to_time" id="to_time" size="7px"/>
-			<select name="department" id="department" class="form-control">
-				<option value="">Department</option>
+			Search By:
+			<select name="helpline" id="helpline" class="form-control">
+				<option value="">Helpline</option>
 				<?php 
-				foreach($all_departments as $dept){
-				echo "<option value='".$dept->department_id."'";
-				if($this->input->post('department') && $this->input->post('department') == $dept->department_id) echo " selected ";
-				echo ">".$dept->department."</option>";
+				foreach($helpline as $help){
+				echo "<option value='".$help->helpline_id."'";
+				if($this->input->post('helpline') && $this->input->post('helpline') == $help->helpline_id) echo " selected "; ?>
+					<?php echo ">".$help->helpline.' - '.$help->note;?></option>
+				<?php } ?>
+			</select>
+			<select name="weekday" id="weekday" class="form-control" >
+				<option value="">Helpline Weekday</option>
+				<?php 
+				foreach($weekdays as $key=>$val){
+				echo "<option value='".$key."'";
+				if ($this->input->post('weekday') && $this->input->post('weekday') == $key) { echo "selected";} 
+					echo ">".$val."</option>";
 				}
 				?>
 			</select>
-			<select name="unit" id="unit" class="form-control" >
-				<option value="">Unit</option>
+			<select name="role" id="role" class="form-control" >
+				<option value="">Helpline Session Role</option>
 				<?php 
-				foreach($units as $unit){
-				echo "<option value='".$unit->unit_id."' class='".$unit->department_id."'";
-				if($this->input->post('unit') && $this->input->post('unit') == $unit->unit_id) echo " selected ";
-				echo ">".$unit->unit_name."</option>";
+				foreach($helpline_session_role as $role){
+				echo "<option value='".$role->helpline_session_role_id."' class='".$role->helpline_session_role_id."'";
+				if($this->input->post('role') && $this->input->post('role') == $role->helpline_session_role_id) echo " selected ";
+				echo ">".$role->helpline_session_role."</option>";
 				}
 				?>
 			</select>
-			<select name="area" id="area" class="form-control" >
-				<option value="">Area</option>
+			<select name="session_name" id="session_name" class="form-control" >
+				<option value="">Helpline Session Name</option>
 				<?php 
-				foreach($areas as $area){
-				echo "<option value='".$area->area_id."' class='".$area->department_id."'";
-				if($this->input->post('area') && $this->input->post('area') == $area->area_id) echo " selected ";
-				echo ">".$area->area_name."</option>";
-				}
-				?>
-			</select>
-			<select name="visit_name" id="visit_name" class="form-control" >
-				<option value="">Visit Type</option>
-				<?php 
-				foreach($visit_names as $v){
-				echo "<option value='".$v->visit_name_id."'";
-				if($this->input->post('visit_name') && $this->input->post('visit_name') == $v->visit_name_id)  echo " selected ";
-				echo ">".$v->visit_name."</option>";
+				foreach($helpline_sessions as $session){
+				echo "<option value='".$session->helpline_session_id."'";
+				if($this->input->post('session_name') && $this->input->post('session_name') == $session->helpline_session_id)  echo " selected ";
+				echo ">".$session->session_name."</option>";
 				}
 				?>
 			</select>
 			  Rows per page : <input type="number" class="rows_per_page form-custom form-control" name="rows_per_page" id="rows_per_page" min=<?php echo $lower_rowsperpage; ?> max= <?php echo $upper_rowsperpage; ?> step="1" value= <?php if($this->input->post('rows_per_page')) { echo $this->input->post('rows_per_page'); }else{echo $rowsperpage;}  ?> onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" /> 
 			<input class="btn btn-sm btn-primary" type="submit" value="Submit" />
+			<!-- <button type="button" class="btn btn-info" required name="submit" onclick="goSubmit()">Submit</button> --!>
 		</form>
 	<br />
-<?php if($this->input->post('visit_id')) { ?>
-<?php if($updated) { ?>
-<div class="alert alert-success" role="alert">Updated Patient Record!</div>
-<?php } else {?>
-<div class="alert alert-danger" role="alert">Something went wrong</div>
-<?php } ?>
-<?php } ?>
+	<?php foreach($functions as $f) {
+		if($f->user_function =="helpline_session_plan" && ($f->add==1)) { ?>
+	<table>
+		<tr>
+		<button type="button" class="btn btn-info" data-toggle="modal" data-target="#addModal">ADD</button>
+		</tr>
+	</table>
+	<?php } ?>
+	<?php } ?>
 
 <?php if(isset($report) && count($report)>0)
 { ?>
@@ -238,7 +287,7 @@ input[type=number] {
 	else{
 		$page_no = 1;
 	}
-	$total_records = $report_count[0]->count ;
+	$total_records = count($report);
 	$total_no_of_pages = ceil($total_records / $total_records_per_page);
 	if ($total_no_of_pages == 0)
 		$total_no_of_pages = 1;
@@ -356,71 +405,33 @@ echo "</select></li>";
 	<table class="table table-bordered table-striped" id="table-sort">
 	<thead>
 		<th>SNo</th>
-		<th>Patient ID</th>
-		<th>OP No.</th>
-		<th>PatientInfo</th>
-		<th>Address</th>
-		<th>Phone</th>
-		<th>Department</th>
-    		<th>Registered By/Time</th>
-		<th>Doctor Consulted</th>
-		<th>Appointment With</th>
-		<th>Appointment Time</th>
-		<th>Consultation Summary Sent</th>
-		<th>Appointment Update By/Time</th>
- 		<th>Update Appointment</th>
- 		<th>Appointment Status</th>
-    		<th>Appointment Status Update By/Time</th>
-		<th>View Summary</th>
+		<th>Helpline Name</th>
+		<th>Weekday</th>
+		<th>Helpline Session Role</th>
+		<th>Helpline Session Name</th>
+		<th>Count</th>
 	</thead>
 	<tbody>
 	<?php 
 	$sno=(($page_no - 1) * $total_records_per_page)+1 ; 
 	
 	foreach($report as $s){
-		$age="";
-		if(!!$s->age_years) $age.=$s->age_years."Y ";
-		if(!!$s->age_months) $age.=$s->age_months."M ";
-		if(!!$s->age_days) $age.=$s->age_days."D ";
-		if($s->age_days==0 && $s->age_months==0 && $s->age_years==0) $age.="0D";
 	?>
 	<tr>
 		<td><?php echo $sno;?></td>
-		<td><?php echo $s->patient_id;?></td>
-		<td><?php echo $s->hosp_file_no;?></td>
-		<td><?php echo $s->name . ", " . $age . " / " . $s->gender." / ".$s->parent_spouse;?> </td>
-		<td><?php if(!!$s->address && !!$s->place) echo $s->address.", ".$s->place; else echo $s->address." ".$s->place;
-		if (!!$s->district) echo "<br/>, ".$s->district." District";
-		if (!!$s->state) echo ", ".$s->state;   ?></td>
-		<td><?php echo $s->phone;?></td>
-		<td><?php echo $s->department;?></td>
-    		<td><?php echo $s->volunteer;?> , <?php echo date("j M Y", strtotime("$s->admit_date")).", ".date("h:i A.", strtotime("$s->admit_time"));?></td>
-		<td><?php echo $s->doctor;?></td>
-		<td><?php echo $s->appointment_with;?></td>
-		<td><?php if(isset($s->appointment_date_time) && $s->appointment_date_time!="") 
-				{echo date("j M Y", strtotime("$s->appointment_date_time")).", ".date("h:i A.", strtotime("$s->appointment_date_time"));} 
-				else {echo $s->appointment_date_time="";}?></td>
-		<td><?php if(isset($s->summary_sent_time) && $s->summary_sent_time!="")
-				{echo date("j M Y", strtotime("$s->summary_sent_time")).", ".date("h:i A.", strtotime("$s->summary_sent_time"));}
-				else {echo $s->summary_sent_time="";};?></td>
-		<td><?php echo $s->appointment_update_by . ", "; 
-				if(isset($s->appointment_update_time) && $s->appointment_update_time!="") 
-				{echo date("j M Y", strtotime("$s->appointment_update_time")).", ".date("h:i A.", strtotime("$s->appointment_update_time"));} 
-				else {echo $s->appointment_update_time="";}?></td>
-		<td><?php if($s->signed==0 or $s->summary_sent_time=="") { echo '
-		<button type="button" class="btn btn-info" data-toggle="modal" data-target="#myModal_' . $sno .'">Update</button>
-		'; }?></td>
-		<td><?php echo $s->appointment_status;?></td>
-		<td><?php echo $s->appointment_status_update_by_user . ", ".$s->appointment_status_update_time;  if(isset($s->appointment_status_update_time) && $s->appointment_status_update_time!="") 
-				{echo date("j M Y", strtotime("$s->appointment_status_update_time")).", ".date("h:i A.", strtotime("$s->appointment_status_update_time"));} 
-				else {echo $s->appointment_status_update_time="";}?></td>	
-		<td><button type="button" class="btn btn-success" onclick="$('#select_patient_<?php echo $s->visit_id;?>').submit()" autofocus>View</button>
-		<?php echo form_open('register/update_patients',array('role'=>'form','id'=>'select_patient_'.$s->visit_id));?>
-		<input type="text" class="sr-only" hidden value="<?php echo $s->visit_id;?>" form="select_patient_<?php echo $s->visit_id;?>" name="selected_patient" />
-		<input type="text" class="sr-only" hidden value="<?php echo $s->patient_id;?>" name="patient_id" />
-		</form>
-		</td>
+		<td><?php echo $s->helpline.'-'.$s->note;?></td>
+		<td><?php echo $weekdays[$s->weekday]; ?></td>
+		<td><?php echo $s->helpline_session_role;?></td>
+		<td><?php echo $s->session_name;?></td>
+		<td style="text-align:center"><button type="button" class="btn btn-success" autofocus onclick="$('#select_helpline_<?php echo $s->helpline_session_id;?>').submit()"><?php echo $s->count_receiver_id ?></button></td>
 		
+		<?php echo form_open('helpline/update_user_helpline_sessionplan',array('role'=>'form','id'=>'select_helpline_'.$s->helpline_session_id));?>
+		<input type="text" class="sr-only" hidden value="<?php echo $s->count_receiver_id;?>" form="select_helpline_<?php echo $s->helpline_session_id;?>" name="selected_helpline" />
+		<input type="text" class="sr-only" hidden value="<?php echo $s->count_receiver_id;?>" name="count_id" />
+		<input type="text" class="sr-only" hidden value="<?php echo $s->helpline_id;?>" name="helpline_id" />
+		<input type="text" class="sr-only" hidden value="<?php echo $s->helpline_session_id;?>" name="helpline_session_id" />
+		<input type="text" class="sr-only" hidden value="<?php echo $s->helpline_session_plan_id;?>" name="helpline_session_plan_id" />
+		</form>
 	</tr>
 	<?php $sno++;}	?>
 	</tbody>
@@ -531,109 +542,214 @@ echo "</select></li>";
 </ul>
 	<?php } else { ?>
 	
-	No patient registrations on the given date.
+	No Helpline Sessions.
 <?php }  ?>
 </div>	
 
-<?php if(isset($report) && count($report)>0){ ?>
-<?php $sno=(($page_no - 1) * $total_records_per_page)+1;
-	foreach($report as $s){
-	$age="";
-	if(!!$s->age_years) $age.=$s->age_years."Y ";
-	if(!!$s->age_months) $age.=$s->age_months."M ";
-	if(!!$s->age_days) $age.=$s->age_days."D ";
-	if($s->age_days==0 && $s->age_months==0 && $s->age_years==0) $age.="0D"; ?>
-
-<div class="modal fade" id="myModal_<?php echo $sno; ?>" role="dialog">
+<div class="modal fade" id="addModal" role="dialog">
 	<div class="modal-dialog">
 	<!-- Modal content-->
 	<div class="modal-content">
 		<div class="modal-header bg-primary text-white">
-			<button type="button" class="close" data-dismiss="modal">&times;</button>
-			<h4 class="modal-title">Update Appointment</h4>
+		      <button type="button" class="close" data-dismiss="modal">&times;</button>
+		      <h4 class="modal-title">Update Helpline Session</h4>
 		</div>
 		<div class="modal-body">
 			<div>
-				<p>
-				<span><b>Patient ID:</b> <?php echo $s->patient_id;?>,&nbsp;</span>
-				<span><b>OP#:</b> <?php echo $s->hosp_file_no;?>,&nbsp;</span>
-				<span><b>Date:</b> <?php echo date("j M Y", strtotime("$s->admit_date"));?>&nbsp;
-				<?php echo date("h:i A.", strtotime("$s->admit_time"));?>,&nbsp;</span>
-				</p>
-				<p class="bg-primary text-white">
-				<span><b>Patient:</b> <?php echo $s->name;?>,&nbsp;<?php echo $age;?>&nbsp;/&nbsp;
-				<?php echo $s->gender;?>, &nbsp;<b>Related to:</b> <?php echo $s->parent_spouse;?>,&nbsp;</span>
-				<span><b>From:</b> <?php if(!!$s->address && !!$s->place) echo $s->address.", ".$s->place; else echo $s->address." ".$s->place;?>,&nbsp;</span>
-				<span><b>Ph:</b> <?php echo $s->phone;?>, &nbsp;</span>
-				</p>
-				<p>
-				<span><b>OP Created By:</b> <?php echo $s->volunteer;?>,&nbsp;</span>
-				<span><b>Doctor Consulted:</b> <?php echo $s->doctor;?></span>
-				</p>	
 			</div>	
 
-			<?php echo form_open("reports/appointment",array('role'=>'form','class'=>'form-custom')); ?>
-			<input type="hidden" name="appointment" value="true">
-			<input type="hidden" name="visit_id" value="<?php echo $s->visit_id;?>">
-			<input type="hidden" name="from_date" value="<?php echo $this->input->post('from_date');?>">
-			<input type="hidden" name="to_date" value="<?php echo $this->input->post('to_date');?>">
-			<input type="hidden" name="from_time" value="<?php echo $this->input->post('from_time');?>">
-			<input type="hidden" name="to_time" value="<?php echo $this->input->post('to_time');?>">
-			<input type="hidden" name="dateby" value="<?php echo $this->input->post('dateby');?>">	
-			<input type="hidden" name="page_no" id="page_no" value='<?php echo $this->input->post('page_no');?>'>			
-			<input type="hidden" name="rows_per_page" id="rows_per_page" value='<?php echo $this->input->post('rows_per_page');?>'>				
+			<?php echo form_open("helpline/session_plan",array('role'=>'form','class'=>'form-custom','id'=>'addModalForm')); ?>
 			<div class="form-group">
-				<label for="department">Department:</label>
-				<select name="department_id" id="department" class="form-control">
-					<option>Select Department</option>
+				<label for="receiver">Helpline :</label>
+				<select name="helpline_modal" id="helpline_modal" required class="form-control">
+					<option value="">Helpline</option>
 					<?php 
-					foreach($all_departments as $dept){
-						echo "<option value='".$dept->department_id."'";
-						if($s->department == $dept->department) echo " selected ";
-						echo ">".$dept->department."</option>";
-					}
-					?>
-				</select>	                        
-			</div>				
-			<div class="form-group">
-				<label for="helpline_doctor">Appointment With:</label>
-				<?php //var_dump($helpline_doctor); ?>
-				<select name="appointment_with" id="helpline_doctor" class="form-control">
-					<option value="NULL">Select Doctor</option>
-					<?php 
-					foreach($helpline_doctor as $doctor){
-						echo "<option value='".$doctor->staff_id."'";
-						if($s->appointment_with_id == $doctor->staff_id) echo " selected ";
-						echo ">".$doctor->helpline_doctor."</option>";
-					}
-					?>
-				</select>
-			</div>
+					foreach($helpline as $help){
+					echo "<option value='".$help->helpline_id."'";
+					if($this->input->post('helpline') && $this->input->post('helpline') == $help->helpline_id) echo " selected "; ?>
+						<?php echo ">".$help->helpline.' - '.$help->note;?></option>
+					<?php } ?>
+			</select>
 				
+			</div>	
 			<div class="form-group">
-				<label for="appointment_time">Appointment Date-Time:</label>
-				<input name="appointment_time" type="datetime-local" 
-				       value="<?php if(isset($s->appointment_date_time) && $s->appointment_date_time!="") 
-						{echo date("Y-m-d\TH:i", strtotime("$s->appointment_date_time"));} 
-						else {echo $s->appointment_date_time="";}?>" 
-				       		class="form-control">
-			</div>
-			
+				<label for="receiver">Helpline Receiver:</label>
+				<select name="receiver_id" id="receiver_id" required class="" placeholder="-Enter User Name/Phone-" style="width:400px"> 
+					<option value ="">- Enter Receiver Name</option>
+				</select>	                        
+			</div>	
 			<div class="form-group">
-				<label for="summary_sent_time">Summary Sent Date-Time:</label>
-				<input name="summary_sent_time" type="datetime-local" class="form-control" >
-			</div>
-
-			<button type="submit" class="btn btn-default">Submit</button>
-			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				<label for="helpline_session_role">Helpline Session Role:</label>
+				<select name="session_role_id" id="session_role_id" required class="form-control">
+				<option value="">Select Session Role</option>
+				<?php 
+				foreach($helpline_session_role as $session_role){
+				echo "<option value='".$session_role->helpline_session_role_id."' class='".$session_role->helpline_session_role_id."'";
+				echo ">".$session_role->helpline_session_role."</option>";
+				}
+				?>
+			</select>
+			</div>	
+			<div class="form-group">
+				<label for="helpline_session">Helpline Weekday:</label>
+			<select name="weekday_modal" id="weekday_modal" class="form-control" required>
+				<option value="">Weekday</option>
+			</select>
+			</div>	
+			<div class="form-group">
+				<label for="helpline_session_name">Helpline Session Name:</label>
+			<select name="session_name_modal" id="session_name_modal" class="form-control" required>
+				<option value="">Helpline Session Name</option>
+			</select>
+			</div>	
+			<input type="text" hidden class="sr-only" name="submit_modal" value="submitModal1"/>
+			<button type="button" class="btn btn-info" required name="submit_modal" onclick="addModalSubmit()">Submit</button>
+			<button type="button" class="btn btn-default" data-dismiss="modal" onclick="addModalClose()">Close</button>
 
 			</form> 
+	<!--<div hidden id="success_added" name="success_team_member">
+	 "Team Member Successfully Added to the Helpline Session"
+	</div> --!>
 		</div>
 	</div>
 
 	</div>
 </div>
-<?php $sno++;}?>
-<?php }?>
- <!-- Modal -->
-  
+<!-- Modal -->
+ 
+<script type="text/javascript">
+var helpline_sessions = <?php echo json_encode($helpline_sessions); ?>; 
+var weekdays = <?php echo json_encode($weekdays); ?>;
+function buildEmptyOption(optionName = "Select") {
+	return `<option value="" selected>
+					${optionName}
+			</option>`;
+
+}
+
+function gethelplineSession(){
+	 // console.log(helpline_sessions);
+	var weekday_id = document.getElementById("weekday_modal").value;
+	const helpline_Sessions = helpline_sessions.filter(session => session.weekday == weekday_id);
+	var helpline = document.getElementById("helpline_modal").value;
+	// console.log(helpline);
+	const helplineSessions = helpline_Sessions.filter(session => session.helpline_id == helpline);
+	let optionsHtml = buildEmptyOption("Helpline Session");
+	if (helplineSessions.length > 0) {
+		optionsHtml += helplineSessions.map(session => {
+			return `	<option value="${session.helpline_session_id}">
+							${session.session_name}
+						</option>`;
+		});
+	
+		return optionsHtml;
+	}	
+	return optionsHtml;
+}
+function setupSessionNameDropDown(){
+	console.log("select changed ");
+	//console.log(weekday_id);
+	const optionsHtml = gethelplineSession();
+	$("#session_name_modal").html(optionsHtml);
+}
+
+$("#helpline_modal").on("change", function() {
+setupSessionNameDropDown();});
+
+function setupDefaultWeekDayDropDown(){
+	let optionsHtml = buildEmptyOption("Weekdays");
+	var keys = Object.keys(weekdays);
+	for (i = 0 ; i < keys.length ; i++) {
+		optionsHtml +=  `	<option value="${keys[i]}">
+							${weekdays[keys[i]]}
+						</option>`; 
+	}
+	return optionsHtml;
+}
+function setupWeekdayDropdown(){
+	// console.log(weekdays);
+	const optionsHtml = setupDefaultWeekDayDropDown();
+	$("#weekday_modal").html(optionsHtml);
+	$("#weekday_modal").on("change", function() {
+		const weekdayId = $(this).val();
+		console.log("the value is ",$(this));	
+		setupSessionNameDropDown(weekdayId);
+	});
+	console.log("setupWeekDayDropDown");
+	
+}
+<?php
+/*
+$("#helpline_modal").on("change", function() {
+	const helplineId = $(this).val();
+	console.log("the value is ", $(this));
+}
+*/ ?>
+function goSubmit() {
+	$.ajax({
+type: 'POST',
+url: $("#helplineForm").attr("action"),
+data: $("#helplineForm").serialize(), 
+//or your custom data either as object {foo: "bar", ...} or foo=bar&...
+success: function(response) { console.log('go submitted'); },
+});
+}
+
+function addModalClose() {
+		document.getElementById("addModalForm").reset();
+		var $select = $("#receiver_id").selectize();
+		var control = $select[0].selectize;
+		control.clear();
+}
+
+function addModalSubmit() {
+var helpline = document.getElementById("helpline_modal").value;
+var receiver = document.getElementById("receiver_id").value;
+var role = document.getElementById("session_role_id").value;
+var weekday_modal = document.getElementById("weekday_modal").value;
+var session = document.getElementById("session_name_modal").value;
+
+
+if (helpline.length === 0 || receiver.length === 0 || role.length === 0 || weekday_modal.length === 0 || session.length === 0) {
+	bootbox.alert("Please fill all the values");
+	return;	
+}
+
+	$.ajax({
+type: 'POST',
+url: $("#addModalForm").attr("action"),
+data: $("#addModalForm").serialize(), 
+//or your custom data either as object {foo: "bar", ...} or foo=bar&...
+success: function(response) { 
+		// $("#success_added").attr("hidden",false);
+		bootbox.alert('Team Member added successfully'); 
+		document.getElementById("addModalForm").reset();
+		var $select = $("#receiver_id").selectize();
+		var control = $select[0].selectize;
+		control.clear();
+
+		},
+error: function(response) {
+		bootbox.alert('Team Member already exists');
+		document.getElementById("addModalForm").reset();
+		var $select = $("#receiver_id").selectize();
+		var control = $select[0].selectize;
+		control.clear();
+}
+});
+}
+$('#addModal').on('hidden.bs.modal', function () {
+  // do something...
+$("#addModalForm").trigger("reset");
+	document.getElementById("addModalForm").reset();
+		document.getElementById("addModalForm").reset();
+		var $select = $("#receiver_id").selectize();
+		var control = $select[0].selectize;
+
+});
+
+$(document).ready(function() {
+	console.log("document ready");
+	setupWeekdayDropdown();
+})
+</script>

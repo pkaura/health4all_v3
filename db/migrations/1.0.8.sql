@@ -126,3 +126,46 @@ INSERT INTO `user_function` (`user_function_id`, `user_function`, `user_function
 ALTER TABLE `district` ADD `district_alias` TEXT NOT NULL AFTER `district`;
 
 ALTER TABLE `visit_name` ADD `summary_header` TINYINT NOT NULL DEFAULT '0' AFTER `inuse`;
+
+
+INSERT INTO `user_function` (`user_function_id`, `user_function`, `user_function_display`, `description`) VALUES (NULL, 'helpline_session_plan', 'Helpline session plan', 'To show/hide Helpline session plan menu item');
+
+CREATE TABLE `helpline_session_role` ( 
+	`helpline_session_role_id` INT NOT NULL AUTO_INCREMENT, 
+	`helpline_session_role` VARCHAR(50) NOT NULL COMMENT 'Call Receiving Support' ,
+	 PRIMARY KEY (`helpline_session_role_id`)) ENGINE = InnoDB;
+
+INSERT INTO `helpline_session_role` (`helpline_session_role_id`, `helpline_session_role`) VALUES (NULL, 'Call Receiving');
+INSERT INTO `helpline_session_role` (`helpline_session_role_id`, `helpline_session_role`) VALUES (NULL, 'Support');
+
+CREATE TABLE `helpline_session` ( 
+	`helpline_session_id` INT NOT NULL AUTO_INCREMENT, 
+	`helpline_id` INT NOT NULL , 
+	`session_name` VARCHAR(100) NOT NULL , 
+	`monthday` TINYINT NOT NULL , 
+	`weekday` TINYINT NOT NULL , 
+	`from_time` DATETIME NOT NULL , 
+	`to_time` DATETIME NOT NULL , 
+	`session_status` BOOLEAN NOT NULL , 
+	PRIMARY KEY (`helpline_session_id`)) ENGINE = InnoDB;
+
+CREATE TABLE `helpline_session_plan` (
+	 `helpline_session_plan_id` INT NOT NULL AUTO_INCREMENT, 
+	`receiver_id` INT NOT NULL , 
+	`helpline_session_id` INT NOT NULL , 
+	`helpline_session_role_id` INT NOT NULL , 
+	`created_by_staff_id` INT NOT NULL , 
+	`create_date_time` TIMESTAMP NOT NULL , 
+	`soft_deleted` TINYINT NOT NULL , 
+	`soft_deleted_by_staff_id` INT NOT NULL , 
+	`soft_deleted_by_date_time` INT NOT NULL , PRIMARY KEY (`helpline_session_plan_id`)) ENGINE = InnoDB;
+	
+ALTER TABLE `helpline_call` ADD `district_id` INT NULL COMMENT 'Stores the district on which call came from' AFTER `language_id`;
+
+CREATE TABLE `helpline_receiver_language` ( 
+      `helpline_receiver_language_id` int(11) NOT NULL AUTO_INCREMENT,
+       `language_id` int(11) NOT NULL,
+  `receiver_id` int(11) NOT NULL,
+  `proficiency` tinyint(4) NOT NULL,  
+   PRIMARY KEY (`helpline_receiver_language_id`)) ENGINE = InnoDB
+

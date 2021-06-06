@@ -56,6 +56,8 @@ class Helpline extends CI_Controller {
 			}
 			$this->data['calls']=$this->helpline_model->get_detailed_report($this->data['rowsperpage']);
 			$this->data['calls_count']=$this->helpline_model->get_detailed_report_count();
+			$this->data['all_states']=$this->masters_model->get_data("states");
+			$this->data['districts']=$this->staff_model->get_district();
 			$this->data['caller_type']=$this->helpline_model->get_caller_type();
 			$this->data['language']=$this->helpline_model->get_language();
 			$this->data['department']=$this->hospital_model->get_department();
@@ -568,6 +570,149 @@ class Helpline extends CI_Controller {
 			echo true;
 		} else {
 			echo $xmlresult->RestException->Message;
+		}
+	}
+
+	function session_plan(){
+		if(!$this->session->userdata('logged_in')){
+			show_404();
+		}
+		$access=0;
+		foreach($this->data['functions'] as $function){
+			if($function->user_function=="helpline_session_plan"){
+				$access=1;
+			}
+		}
+
+
+		if($access==1){
+			$user=$this->session->userdata('logged_in');
+			$this->data['user_id']=$user['user_id'];
+			$this->data['title']="Helpline Session Plan";
+			$this->data['helpline']=$this->helpline_model->get_helpline();
+			$this->data['weekdays']=$this->helpline_model->get_weekdays();
+
+			$this->data['helpline_session_role']=$this->helpline_model->get_helpline_session_role();
+			//$this->data['helpline_sessions']='SSSOG'; //$this->helpline_model->get_helpline_session();
+			$this->data['helpline_sessions']=$this->helpline_model->get_helpline_session();
+			$this->load->view('templates/header',$this->data);
+			$this->data['receivers'] = $this->helpline_model->getHelplineReceivers();
+			$this->load->helper('form');
+			$this->load->library('form_validation');
+			$this->data['defaultsConfigs'] = $this->masters_model->get_data("defaults");
+			// $this->data['updated']=false;
+			foreach($this->data['defaultsConfigs'] as $default){
+				if($default->default_id=='pagination'){
+					$this->data['rowsperpage'] = $default->value;
+					$this->data['upper_rowsperpage']= $default->upper_range;
+					$this->data['lower_rowsperpage']= $default->lower_range;
+				}
+			}
+			if ($this->input->post('receiver_id')) {
+				// Modal addition
+				if($this->helpline_model->insert_session_plan()) {
+				// insertion succeded.
+				}
+				else {
+				// insertion failed.
+				header('HTTP/1.1 500 Internal Server');
+ 			       header('Content-Type: application/json; charset=UTF-8');
+				echo json_encode(array('message' => 'error')) ;
+				}
+			}
+			else {
+			}
+
+			if ($this->input->post('rows_per_page')) {
+				// The submit for the current search has been entered.
+				$this->data['report'] = $this->helpline_model->get_helpline_session_report();
+			}
+			else {
+			// $this->data['report'] = $this->helpline_model->get_helpline_session_report();
+
+			}
+			if ($this->form_validation->run() === FALSE) 
+			{
+				$this->load->view('pages/helpline/session_plan',$this->data);
+			}
+			else {
+				$this->load->view('pages/helpline/session_plan',$this->data);
+			}
+			$this->load->view('templates/footer');
+		}
+		else {
+			show_404();
+		}
+
+	}
+	function update_user_helpline_sessionplan(){
+		if(!$this->session->userdata('logged_in')){
+			show_404();
+		}
+		$access=0;
+		foreach($this->data['functions'] as $function){
+			if($function->user_function=="helpline_session_plan"){
+				$access=1;
+			}
+		}
+		if ($access==1) {
+
+			$user=$this->session->userdata('logged_in');
+			$this->data['user_id']=$user['user_id'];
+			$this->data['title']="HelpLine Receivers -Sessions";
+			$this->data['weekdays']=$this->helpline_model->get_weekdays();
+			$helpline_session_id = $this->input->post('helpline_session_id');
+			$helpline_session_plan_id = $this->input->post('helpline_session_plan_id');
+			$this->data['report'] = $this->helpline_model->get_helpline_receiver_report($helpline_session_id);
+			$this->load->view('templates/header',$this->data);
+			$this->load->helper('form');
+			$this->load->library('form_validation');
+			$this->data['defaultsConfigs'] = $this->masters_model->get_data("defaults");
+			foreach($this->data['defaultsConfigs'] as $default){
+				if($default->default_id=='pagination'){
+					$this->data['rowsperpage'] = $default->value;
+					$this->data['upper_rowsperpage']= $default->upper_range;
+					$this->data['lower_rowsperpage']= $default->lower_range;
+				}
+			}
+			if ($this->input->post('helpline_update_session_plan_id')) {
+				// delete request
+				if ($this->helpline_model->delete_helpline_session_plan_id($this->input->post('helpline_update_session_plan_id'))) {
+			}
+			else {
+			//	deletion failed
+				header('HTTP/1.1 500 Internal Server');
+ 			       header('Content-Type: application/json; charset=UTF-8');
+				echo json_encode(array('message' => 'error')) ;
+			}
+			}
+			else {
+			}
+			
+			if ($this->input->post('view_receiver_id')) {
+				// get sessions for a receiver
+			   $receivers= $this->helpline_model->get_helpline_sessions_for_receiver();
+			$this->data['full_name']=$this->input->post('name_receiver_id');
+			$this->data['report_sessions']=$receivers;
+			$data=array(
+				'report_sessions'=>$receivers
+			);
+				//$data['report_sesssions']=$this->data['report_sessions'];
+				 //echo json_encode($data);
+			}
+
+			if ($this->form_validation->run() === FALSE) 
+			{
+				$this->load->view('pages/helpline/update_session_plan',$this->data);
+			}
+			else {
+				$this->load->view('pages/helpline/update_session_plan',$this->data);
+			}
+			$this->load->view('templates/footer');
+		}
+		else {
+			show_404();
+
 		}
 	}
 }

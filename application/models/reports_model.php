@@ -1112,6 +1112,11 @@ function get_op_detail_with_idproof(){
 	
 	function get_doctor_patient_list(){
 		$hospital=$this->session->userdata('hospital');
+		$date_filter_field="Appointment";
+		if($this->input->post('dateby') && $this->input->post('dateby')=="Registration"){
+			$date_filter_field="Registration";
+		}
+		
 		if($this->input->post('from_date') && $this->input->post('to_date')){
 			$from_date=date("Y-m-d",strtotime($this->input->post('from_date')));
 			$to_date=date("Y-m-d",strtotime($this->input->post('to_date')));
@@ -1124,10 +1129,11 @@ function get_op_detail_with_idproof(){
 			$from_date=date("Y-m-d");
 			$to_date=$from_date;
 		}
+	
                 if($this->input->post('from_time') && $this->input->post('to_time')){
 			$from_time=date("H:i",strtotime($this->input->post('from_time')));
 			$to_time=date("H:i",strtotime($this->input->post('to_time')));
-				$this->db->where("(admit_time BETWEEN '$from_time' AND '$to_time')");
+				
 		}
 		else if($this->input->post('from_time') || $this->input->post('to_time')){
 			if($this->input->post('from_time')){
@@ -1136,12 +1142,25 @@ function get_op_detail_with_idproof(){
                         }else{
                             $from_time = '00:00';
                             $to_time=$this->input->post('to_time');
-                        }
-			$this->db->where("(admit_time BETWEEN '$from_time' AND '$to_time')");
-		}
+                        }				
+		}		
 		else{
-			$this->db->where("(admit_time BETWEEN '00:00' AND '23:59')");
+			$to_time = '23:59';
+		 	$from_time = '00:00';
 		}
+		
+		if($date_filter_field=="Registration"){
+			$this->db->where("(admit_date BETWEEN '$from_date' AND '$to_date')");
+			$this->db->where("(admit_time BETWEEN '$from_time' AND '$to_time')");
+		} 
+		else if($date_filter_field=="Appointment"){
+			$this->db->where("(appointment_time IS NOT NULL)");				
+			$from_timestamp = $from_date." ".$from_time;
+			$to_timestamp = $to_date." ".$to_time;
+			$this->db->where("(appointment_time BETWEEN '$from_timestamp' AND '$to_timestamp')");
+			$this->db->order_by('UNIX_TIMESTAMP(appointment_time)','ASC');
+		}
+		
 		if($this->input->post('visit_name')){
 			$this->db->where('patient_visit.visit_name_id',$this->input->post('visit_name'));
 		}
@@ -1189,12 +1208,11 @@ function get_op_detail_with_idproof(){
 		
 		$where = "pv.hospital_id = $current_hospital
 			  AND visit_type = 'OP'
-			  AND (admit_date BETWEEN '$from_date' AND '$to_date')
 			  AND (pv.appointment_with = $user_staff_id OR pv.signed_consultation = $user_staff_id)";
 		$this->db->where($where);
 		
-		$this->db->order_by('admit_date','ASC');
-		$this->db->order_by('admit_time','ASC');
+		//$this->db->order_by('admit_date','ASC');
+		//$this->db->order_by('admit_time','ASC');
 		
 		$resource=$this->db->get();
 		return $resource->result();
@@ -1771,6 +1789,13 @@ function get_op_detail_with_idproof(){
             /*Query is being built from the data input from the user*/
 
             //Selection of the date field.
+            
+             $date_filter_field="Registration";
+	     if($this->input->post('dateby') && $this->input->post('dateby')=="Appointment"){
+			$date_filter_field="Appointment";
+	     }	
+	     $from_time = '00:00';	
+	     $to_time = '23:59';
             if($this->input->post('from_date') && $this->input->post('to_date')){
 			$from_date=date("Y-m-d",strtotime($this->input->post('from_date')));
 			$to_date=date("Y-m-d",strtotime($this->input->post('to_date')));
@@ -1797,23 +1822,45 @@ function get_op_detail_with_idproof(){
                 //Report for day or month or year.
 		if($this->input->post('trend_type')){
                         $trend = $this->input->post('trend_type');
-                        if($trend=="Month"){
-                            $this->db->select('patient_visit.admit_date date',false);
-                            $this->db->group_by('MONTH(patient_visit.admit_date),YEAR(patient_visit.admit_date)');
-                        }
-                        else if($trend=="Year"){
-                            $this->db->select('YEAR(patient_visit.admit_date) date');
-                            $this->db->group_by('YEAR(patient_visit.admit_date)');
-                        }
-                        else{
-                            $this->db->select('patient_visit.admit_date date');
-                            $this->db->group_by('patient_visit.admit_date');
-                        }
-		}
-                        else{
-                            $this->db->select('patient_visit.admit_date date');
-                            $this->db->group_by('patient_visit.admit_date');
-                        }
+                        if($date_filter_field=="Registration"){
+                        	if($trend=="Month"){
+                            		$this->db->select('patient_visit.admit_date date',false);
+                            		$this->db->group_by('MONTH(patient_visit.admit_date)');
+                        	}
+                        	else if($trend=="Year"){
+                            		$this->db->select('YEAR(patient_visit.admit_date) date');
+                            		$this->db->group_by('YEAR(patient_visit.admit_date)');
+                        	}
+                        	else{
+                            		$this->db->select('patient_visit.admit_date date');
+                           		$this->db->group_by('patient_visit.admit_date');
+                        	}
+			}
+			else if($date_filter_field=="Appointment"){
+				if($trend=="Month"){
+                            		$this->db->select('patient_visit.appointment_time date',false);
+                            		$this->db->group_by('MONTH(patient_visit.appointment_time)');
+                        	}
+                        	else if($trend=="Year"){
+                            		$this->db->select('YEAR(patient_visit.appointment_time) date');
+                            		$this->db->group_by('YEAR(patient_visit.appointment_time)');
+                        	}
+                        	else{
+                            		$this->db->select('patient_visit.appointment_time date');
+                           		$this->db->group_by('patient_visit.appointment_time');
+                        	}
+			}
+		  }
+                 else{
+                 	if($date_filter_field=="Registration"){	
+                               $this->db->select('patient_visit.admit_date date');
+                               $this->db->group_by('patient_visit.admit_date');
+                  	}
+                  	else if($date_filter_field=="Appointment"){
+                  		$this->db->select('patient_visit.appointment_time date');
+                               $this->db->group_by('patient_visit.appointment_time');
+                  	}
+                 }
                  //Setting the selected department in the query. First time all the departments are selected.
 		if($this->input->post('department')){
 			$this->db->where('patient_visit.department_id',$this->input->post('department'));
@@ -1832,9 +1879,20 @@ function get_op_detail_with_idproof(){
 		else{
 			$this->db->select('"0" as area',false);
 		}
+		if($date_filter_field=="Registration"){
+			$this->db->where("(admit_date BETWEEN '$from_date' AND '$to_date')");
+		} 
+		else if($date_filter_field=="Appointment"){
+			$this->db->where("(appointment_time IS NOT NULL)");				
+			$from_timestamp = $from_date." ".$from_time;
+			$to_timestamp = $to_date." ".$to_time;
+			$this->db->where("(appointment_time BETWEEN '$from_timestamp' AND '$to_timestamp')");
+		}
                 //Counting the number of patients gender wise.
 		$this->db->select("
-          SUM(CASE WHEN 1  THEN 1 ELSE 0 END) 'total',
+		SUM(CASE WHEN 1 THEN 1 ELSE 0 END) 'total',
+          SUM(CASE WHEN gender = '0'  THEN 1 ELSE 0 END) 'not_specified',
+           SUM(CASE WHEN gender = 'O'  THEN 1 ELSE 0 END) 'others',
 		SUM(CASE WHEN gender = 'F'  THEN 1 ELSE 0 END) 'female',
 		SUM(CASE WHEN gender = 'M'  THEN 1 ELSE 0 END) 'male',
 		SUM(CASE WHEN signed_consultation > 0 THEN 1 ELSE 0 END) 'signed_consultation',
@@ -1844,9 +1902,7 @@ function get_op_detail_with_idproof(){
 		 ->join('unit','patient_visit.unit=unit.unit_id','left')
 		 ->join('area','patient_visit.area=area.area_id','left')
 		 ->join('hospital','patient_visit.hospital_id=hospital.hospital_id','left')
-		 ->where('patient_visit.hospital_id',$hospital['hospital_id'])
-		 ->where("(admit_date BETWEEN '$from_date' AND '$to_date')")
-		 ->group_by('patient_visit.signed_consultation');
+		 ->where('patient_visit.hospital_id',$hospital['hospital_id']);
 		$resource=$this->db->get();
 		return $resource->result();
         }
