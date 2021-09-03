@@ -1223,7 +1223,7 @@ pri.print();
 					<div class="panel panel-default">
 						<div class="panel-heading">
 							<h4>Search Results</h4> | 
-							<?php if($this->input->post('search_patient_id')) echo "H4A ID : ".$this->input->post('search_patient_id')." | "; ?>
+							<?php if($this->input->post('search_patient_id')) echo "H4A Patient ID : ".$this->input->post('search_patient_id')." | "; ?>
 							<?php if($this->input->post('search_patient_name')) echo "Patient name starting with : ".$this->input->post('search_patient_name')." | "; ?>
 							<?php if($this->input->post('search_op_number')) echo "OP Number : ".$this->input->post('search_op_number')." | "; ?>
 							<?php if($this->input->post('search_phone')) echo "Phone Number : ".$this->input->post('search_phone')." | "; ?>
