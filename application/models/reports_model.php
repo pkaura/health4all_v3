@@ -1707,19 +1707,20 @@ sum(case when patient_sub.gender='F' then 1 else 0 end) as female  from ".$inner
 		}
 		
 		if($this->input->post('phone')){
-			$this->db->like('p.phone',$this->input->post('phone'));
+			$search_phone_withoutzero = ltrim($this->input->post('phone'), '0');
+			$this->db->where("(p.phone='0".$search_phone_withoutzero."' OR p.phone='".$search_phone_withoutzero."')");
 		}
 		
 		if($this->input->post('patientid')){
-			$this->db->like('p.patient_id',$this->input->post('patientid'));
+			$this->db->where('p.patient_id',$this->input->post('patientid'));
 		}
 		
 		if($this->input->post('opno')){
-			$this->db->like('pv.hosp_file_no',$this->input->post('opno'));
+			$this->db->where('pv.hosp_file_no',$this->input->post('opno'));
 		}
 		
 		if($this->input->post('manualid')){
-			$this->db->like('p.patient_id_manual',$this->input->post('manualid'));
+			$this->db->where('p.patient_id_manual',$this->input->post('manualid'));
 		}		
 		
 		
@@ -1764,7 +1765,7 @@ sum(case when patient_sub.gender='F' then 1 else 0 end) as female  from ".$inner
 		 ->join('department as sd', 'appointment_with.department_id=sd.department_id','left')
 		 ->join('department as sd_doctor', 'doctor.department_id=sd_doctor.department_id','left')
 		 ->join('staff as appointment_update_by','pv.appointment_update_by=appointment_update_by.staff_id','left')	 
-		 ->join('user as volunteer_user','p.insert_by_user_id = volunteer_user.user_id','left')
+		 ->join('user as volunteer_user','pv.insert_by_user_id = volunteer_user.user_id','left')
 		 ->join('staff as volunteer','volunteer_user.staff_id=volunteer.staff_id','left')	
 		 ->join('staff as appointment_status_update_by_staff','pv.appointment_status_update_by=appointment_status_update_by_staff.staff_id','left')
 		 ->join('appointment_status aps','pv.appointment_status_id=aps.id','left')	
@@ -1853,19 +1854,20 @@ sum(case when patient_sub.gender='F' then 1 else 0 end) as female  from ".$inner
 		}
 		
 		if($this->input->post('phone')){
-			$this->db->like('p.phone',$this->input->post('phone'));
+			$search_phone_withoutzero = ltrim($this->input->post('phone'), '0');
+			$this->db->where("(p.phone='0".$search_phone_withoutzero."' OR p.phone='".$search_phone_withoutzero."')");
 		}
 		
 		if($this->input->post('patientid')){
-			$this->db->like('p.patient_id',$this->input->post('patientid'));
+			$this->db->where('p.patient_id',$this->input->post('patientid'));
+		}
+		
+		if($this->input->post('opno')){
+			$this->db->where('pv.hosp_file_no',$this->input->post('opno'));
 		}
 		
 		if($this->input->post('manualid')){
-			$this->db->like('p.patient_id_manual',$this->input->post('manualid'));
-		}		
-		
-		if($this->input->post('opno')){
-			$this->db->like('pv.hosp_file_no',$this->input->post('opno'));
+			$this->db->where('p.patient_id_manual',$this->input->post('manualid'));
 		}
 		
 		$this->db->select("count(*) as count",false);
@@ -1880,7 +1882,7 @@ sum(case when patient_sub.gender='F' then 1 else 0 end) as female  from ".$inner
 		 ->join('staff as doctor','pv.signed_consultation=doctor.staff_id','left')
 		 ->join('staff as appointment_with','pv.appointment_with=appointment_with.staff_id','left')
 		 ->join('staff as appointment_update_by','pv.appointment_update_by=appointment_update_by.staff_id','left')	 
-		 ->join('user as volunteer_user','p.insert_by_user_id = volunteer_user.user_id','left')
+		 ->join('user as volunteer_user','pv.insert_by_user_id = volunteer_user.user_id','left')
 		 ->join('staff as volunteer','volunteer_user.staff_id=volunteer.staff_id','left')
 		 ->join('staff as appointment_status_update_by_staff','pv.appointment_status_update_by=appointment_status_update_by_staff.staff_id','left')
 		 ->join('appointment_status aps','pv.appointment_status_id=aps.id','left')	
