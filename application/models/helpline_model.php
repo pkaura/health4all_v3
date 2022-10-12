@@ -1993,5 +1993,84 @@ SUM(CASE WHEN helpline_call.direction =  'outbound-dial' THEN 1 ELSE 0 END) AS o
 		return true;	
 	}
 
+	function get_counseling_types()
+	{
+		$this->db->select("counseling_type_id, counseling_type");
+		$this->db->from('counseling_type');
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	function get_counseling_texts()
+	{
+		$this->db->select("counseling_text_id, counseling_text, counseling_type_id, language_id");
+		$this->db->from('counseling_text');
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	function get_counseling_by_visit($visit_id)
+	{
+		$this->db->select("counseling_id");
+		$this->db->from('counseling');
+		$this->db->where('counseling.visit_id', $visit_id);
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	function get_counseling_text_sequence($counseling_id)
+	{
+		$this->db->select("counseling_text_sequence");
+		$this->db->from('counseling');
+		$this->db->where('counseling.counseling_id', $counseling_id);
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	function update_counseling($counseling_id)
+	{
+		$counseling_text_id_sequence = $this->get_counseling_text_sequence($counseling_id);
+		$counseling_text_id_sequence = $counseling_text_id_sequence + '|' + $this->input->post('counseling_text_id');
+		$visit_id = $this->input->post('visit_id');
+		$from_number = $this->input->post('From');
+		$created_by = $this->input->post('To');
+		$data = array(
+			'counseling_text_id_sequence' => $counseling_text_id_sequence,
+			'visit_id' => $visit_id,
+			'from_number' => $from_number,
+			'created_by' => $created_by,
+			'created_date_time' => date("Y-m-d H:i:s")
+		);
+
+		if ($this->db->insert('counseling', $data)) {
+			return true;
+		} else return false;
+	}
+
+	function insert_counseling()
+	{
+		$visit_id = $this->input->post('visit_id');
+		echo ("<script>console.log('Inside counseling backend visit_id: " . $visit_id . "');</script>");
+		$counseling_id = $this->get_counseling_by_visit($visit_id);
+
+		if($counseling_id == "") {
+			$counseling_text_id_sequence = $this->input->post('counseling_text_id');
+			$created_by = $this->input->post('To');
+
+			//Creating an array with the database column names as keys and the post values as values.
+			$data = array(
+				'counseling_text_id_sequence' => $counseling_text_id_sequence,
+				'visit_id' => $visit_id,
+				'created_by' => $created_by,
+				'created_date_time' => date("Y-m-d H:i:s")
+			);
+
+			if ($this->db->insert('counseling', $data)) {
+				return true;
+			} else return false;
+		} else {
+			$this->update_counseling($counseling_id);
+		}
+	}
 }
 ?>

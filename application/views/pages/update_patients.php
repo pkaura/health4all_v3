@@ -696,6 +696,15 @@ function initDistrictSelectize(){
 				 } 
 			}
 		?>
+		<?php
+			foreach($functions as $f){
+				if($f->user_function == "Counseling" && ($f->add==1 || $f->edit==1)) { ?>
+					<li role="presentation"><a href="#counseling" aria-controls="counseling" role="tab" data-toggle="tab"><i class="glyph-icon flaticon-drugs5"></i> Counseling</a></li>
+				<?php
+				break;
+				 }
+			}
+		?>
 		<?php 
 			foreach($functions as $f){ 
 				if($f->user_function == "Discharge" && ($f->add==1 || $f->edit==1)) { ?>
@@ -2207,6 +2216,98 @@ function initDistrictSelectize(){
 			<?php } ?>
 			</div>
 		</div>
+		<?php
+				break;
+				 }} ?>
+		<?php
+			foreach($functions as $f){
+				if($f->user_function == "Counseling" && ($f->add==1 || $f->edit==1)) { ?>
+					<div role="tabpanel" class="tab-pane" id="counseling">
+                    <div data-patient-quick-info></div>
+					<div class="row alt">
+				        <div class="col-md-4 col-xs-6">
+							<label class="control-label">Language</label>
+                            <?php if($f->edit==1 && empty($patient->language_id)){ ?>
+								<select name="language_id" class="form-control">
+								<option value="">--Select--</option>
+							<?php 
+							foreach($languages as $language){
+								echo "<option value='".$language->language_id."'";
+								if($language->language_id==$patient->language_id) echo " selected ";
+								echo ">".$language->language."</option>";
+							}
+							?>
+							</select>
+                            <?php }else {
+                                foreach($languages as $language){
+                                    if($language->language_id==$patient->language_id){
+                                        echo "<input type='text' id='language' class='form-control' value='$language->language' disabled/>";
+                                        echo "<input type='hidden' name='language' id='language' class='form-control' value='$language->language_id'/>";
+                                    }
+                                }
+                            }?>
+						</div>
+				        <div class="col-md-4 col-xs-6">
+							<label class="control-label">Counseling Type</label>
+                            <?php if($f->edit==1 && empty($patient->counseling_type_id)){ ?>
+								<select name="counseling_type" class="form-control" id="counseling_type">
+								<option value="">--Select--</option>
+							<?php 
+							foreach($counseling_types as $counseling_type){
+								echo "<option value='".$counseling_type->counseling_type_id."'";
+								if($counseling_type->counseling_type_id==$patient->counseling_type_id) echo " selected ";
+								echo ">".$counseling_type->counseling_type."</option>";
+							}
+							?>
+							</select>
+                            <?php }else {
+                                foreach($counseling_types as $counseling_type){
+                                    if($counseling_type->counseling_type_id==$patient->counseling_type_id){
+                                        echo "<input type='text' id='counseling_type' class='form-control' value='$counseling_type->counseling_type' disabled/>";
+                                        echo "<input type='hidden' name='counseling_type' id='counseling_type' class='form-control' value='$counseling_type->counseling_type_id'/>";
+                                    }
+                                }
+                            }?>
+						</div>
+						<div class="col-md-4 col-xs-6">
+							<label class="control-label">Counseling Text</label>
+                            <?php if($f->edit==1 && empty($patient->counseling_text_id)){ ?>
+								<select name="counseling_text" class="form-control" id="counseling_text">
+								<option value="">--Select--</option>
+							<?php 
+							foreach($counseling_texts as $counseling_text){
+								echo "<option value='".$counseling_text->counseling_text_id."'";
+								if($counseling_text->counseling_text_id==$patient->counseling_text_id) echo " selected ";
+								echo ">".$counseling_text->counseling_text."</option>";
+							}
+							?>
+							</select>
+                            <?php }else {
+                                foreach($counseling_texts as $counseling_text){
+									if (($counseling_text->counseling_text_id == $patient->counseling_text_id) && ($counseling_text->counseling_type_id == $patient->counseling_type_id) && ($counseling_text->language_id == $patient->language_id)) {
+                                        echo "<input type='text' id='counseling_text' class='form-control' value='$counseling_text->counseling_text' disabled/>";
+                                        echo "<input type='hidden' name='counseling_text' id='counseling_text' class='form-control' value='$counseling_text->counseling_text_id'/>";
+                                    }
+                                }
+                            }?>
+						</div>
+						<div class="col-md-4 col-xs-6">
+                			<?php if($f->edit==1) { ?>
+                    			<div class="btn-group" role="group">
+                        			<input type="hidden" name="counseling_child_count" id="counseling_child_count" value="1" />
+                        			<button type="button" id='add_counseling'>Add</button>
+                    			</div>
+                			<?php } ?>
+						</div>
+					</div>
+			<table class="table table-striped table-bordered" class="counseling_table" id="counseling_table">
+				<tr>
+					<!--<th rowspan="3" class="text-center"><img src="<?php echo base_url();?>assets/images/pdf_logo.png" class="prescription_table_heading_icons" alt="" />Counseling Type</th>-->
+					<th rowspan="1" class="text-center">Counseling Type</th>
+					<th rowspan="1" class="text-center">Counseling Text</th>
+				</tr>
+			</table>
+		</div>
 		<?php 
 				break;
 				 }} ?>
@@ -3101,6 +3202,19 @@ function initDistrictSelectize(){
 			$i++;
 			$(".prescription").parent().append($row);
 			initPrescriptionDrugSelectize();
+		});
+		$("#add_counseling").click(function(){
+			var table = document.getElementById("counseling_table");
+    		var row = table.insertRow();
+		    var cell1 = row.insertCell(0);
+    		var cell2 = row.insertCell(1);
+			var cell3 = row.insertCell(2);
+			//var cell4 = row.insertCell(3);
+
+			cell1.innerHTML = $("#counseling_type :selected").text();
+			cell2.innerHTML = $("#counseling_text :selected").text();
+			cell3.innerHTML = '<button type="button" class="btn btn-danger btn-sm" id="remove_counseling" onclick="$(this).parent().parent().remove()">X</button>';
+			//cell4.innerHTML = $("#counseling_text").val();
 		});
 	});
 	$('#icd_code').selectize({
